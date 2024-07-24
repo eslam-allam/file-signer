@@ -41,7 +41,7 @@ var templateCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(templateCmd)
+	licenceCmd.AddCommand(templateCmd)
 
 	templateCmd.Flags().StringVarP(&templateDir, "directory", "d", ".", "Target directory where template will be generated")
 	templateCmd.Flags().BoolVarP(&overwriteTemplate, "overwrite", "o", false, "Overwrite template files if they exist")

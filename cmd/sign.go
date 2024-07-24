@@ -4,7 +4,6 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"bytes"
 	"encoding/json"
 	"log"
 	"path/filepath"
@@ -14,20 +13,18 @@ import (
 	"github.com/eslam-allam/file-signer/internal/key"
 	"github.com/eslam-allam/file-signer/internal/licence"
 	"github.com/spf13/cobra"
-	"github.com/thediveo/enumflag/v2"
 )
 
-var (
-	keyType         key.KeyType
-	bitSize         uint
+var signCmdFlags = struct {
+	privateKey      string
 	targetDirectory string
 	overwrite       bool
-)
+}{}
 
 // signCmd represents the sign command
 var signCmd = &cobra.Command{
 	Use:   "sign [file]",
-	Short: "Generate a private/public key pair and sign a file using those keys",
+	Short: "Sign a licence file using the specified private key",
 	Args:  cobra.ExactArgs(1),
 	ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		if len(args) >= 1 {
@@ -39,20 +36,18 @@ var signCmd = &cobra.Command{
 		}
 		return completions, cobra.ShellCompDirectiveDefault
 	},
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		private, public, err := key.GenerateKeyPair(keyType, bitSize)
+		privateKey, err := fs.ReadFile(signCmdFlags.privateKey)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		private, err := key.ParsePrivateKey(privateKey)
 		if err != nil {
 			log.Fatal(err)
 		}
 
 		message, err := fs.ReadFile(args[0])
-		message = bytes.Trim(message, "\n\t ")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -73,26 +68,13 @@ to quickly create a Cobra application.`,
 			log.Fatal(err)
 		}
 
-		privateBytes, publicBytes, err := key.MarshalKeyPair(private, public)
-		if err != nil {
-			log.Fatal(err)
+		if signCmdFlags.targetDirectory == "" {
+			signCmdFlags.targetDirectory = filepath.Dir(args[0])
 		}
 
-		if targetDirectory == "" {
-			targetDirectory = filepath.Dir(args[0])
-		}
-
-		err = fs.SaveCreateIntermediate(filepath.Join(targetDirectory, constant.SIGNED_LICENCE_FILE_NAME), signedBytes, overwrite)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		err = fs.SaveCreateIntermediate(filepath.Join(targetDirectory, constant.PRIVATE_KEY_FILE_NAME), privateBytes, overwrite)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		err = fs.SaveCreateIntermediate(filepath.Join(targetDirectory, constant.PUBLIC_KEY_FILE_NAME), publicBytes, overwrite)
+		err = fs.SaveCreateIntermediate(filepath.Join(
+			signCmdFlags.targetDirectory, constant.SIGNED_LICENCE_FILE_NAME),
+			signedBytes, signCmdFlags.overwrite)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -100,18 +82,9 @@ to quickly create a Cobra application.`,
 }
 
 func init() {
-	rootCmd.AddCommand(signCmd)
+	licenceCmd.AddCommand(signCmd)
 
-	te := enumflag.New(
-		&keyType,
-		"type",
-		key.KeyTypes,
-		enumflag.EnumCaseInsensitive,
-	)
-	te.RegisterCompletion(signCmd, "type", key.KeyTypeDescription)
-
-	signCmd.Flags().VarP(te, "type", "t", "Algorithm used for generating private/public key pairs")
-	signCmd.Flags().UintVarP(&bitSize, "bit-size", "b", 4096, "Number of bits used if RSA algorithm is used (must be a multiple of 256)")
-	signCmd.Flags().StringVarP(&targetDirectory, "target-directory", "d", "", "Directory used to save signed file and key pair. (default $licence_file_directory)")
-	signCmd.Flags().BoolVarP(&overwrite, "overwrite", "o", false, "Overwrite existing files with generated files")
+	signCmd.Flags().StringVarP(&signCmdFlags.privateKey, "private-key", "k", constant.PRIVATE_KEY_FILE_NAME, "Private key used to sign the licence")
+	signCmd.Flags().StringVarP(&signCmdFlags.targetDirectory, "target-directory", "d", "", "Directory used to save signed file. (default $licence_file_directory)")
+	signCmd.Flags().BoolVarP(&signCmdFlags.overwrite, "overwrite", "o", false, "Overwrite existing files with generated files")
 }

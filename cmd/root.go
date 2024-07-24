@@ -11,8 +11,8 @@ import (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "adri-product-licence",
-	Short: "Create, update and verify licence files for adri products",
+	Use:   "file-signer",
+	Short: "Create, update and verify licence files",
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

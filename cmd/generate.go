@@ -23,8 +23,8 @@ var generateKeyFlags = struct {
 
 // generateCmd represents the generate command
 var generateCmd = &cobra.Command{
-	Use:   "generate [directory]",
-	Short: "Generate a private/public keypair and save them in [directory]",
+	Use:   "generate",
+	Short: "Generate a private/public keypair",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		privateKey, publicKey, err := key.GenerateKeyPair(generateKeyFlags.keyType, generateKeyFlags.bitsize)

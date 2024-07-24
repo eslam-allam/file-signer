@@ -84,6 +84,7 @@ func MarshalKeyPair(private crypto.PrivateKey, public crypto.PublicKey) (private
 		Headers: nil,
 	}
 
+	privateBytes = append(privateBytes, pem.EncodeToMemory(&publicBlock)...)
 	publicBytes = pem.EncodeToMemory(&publicBlock)
 
 	return

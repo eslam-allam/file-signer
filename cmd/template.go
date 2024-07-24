@@ -13,10 +13,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	templateDir       string
-	overwriteTemplate bool
-)
+var licenceTemplateFlags = struct {
+	targetDir string
+	overwrite bool
+}{}
 
 // templateCmd represents the template command
 var templateCmd = &cobra.Command{
@@ -28,12 +28,14 @@ var templateCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
-		err = fs.SaveCreateIntermediate(filepath.Join(templateDir, constant.LICENCE_FILE_NAME), licence, overwriteTemplate)
+		err = fs.SaveCreateIntermediate(
+			filepath.Join(licenceTemplateFlags.targetDir, constant.LICENCE_FILE_NAME), licence, licenceTemplateFlags.overwrite)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		err = fs.SaveCreateIntermediate(filepath.Join(templateDir, constant.SCHEMA_FILE_NAME), schema, overwriteTemplate)
+		err = fs.SaveCreateIntermediate(
+			filepath.Join(licenceTemplateFlags.targetDir, constant.SCHEMA_FILE_NAME), schema, licenceTemplateFlags.overwrite)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -43,6 +45,6 @@ var templateCmd = &cobra.Command{
 func init() {
 	licenceCmd.AddCommand(templateCmd)
 
-	templateCmd.Flags().StringVarP(&templateDir, "directory", "d", ".", "Target directory where template will be generated")
-	templateCmd.Flags().BoolVarP(&overwriteTemplate, "overwrite", "o", false, "Overwrite template files if they exist")
+	templateCmd.Flags().StringVarP(&licenceTemplateFlags.targetDir, "directory", "d", ".", "Target directory where template will be generated")
+	templateCmd.Flags().BoolVarP(&licenceTemplateFlags.overwrite, "overwrite", "o", false, "Overwrite template files if they exist")
 }

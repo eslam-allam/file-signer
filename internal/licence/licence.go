@@ -2,8 +2,6 @@ package licence
 
 import (
 	"crypto"
-	"crypto/rand"
-	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -11,6 +9,7 @@ import (
 	"time"
 
 	"github.com/eslam-allam/file-signer/internal/constant"
+	"github.com/eslam-allam/file-signer/internal/sign"
 	"github.com/google/uuid"
 )
 
@@ -121,20 +120,6 @@ func GetTemplate() (licence []byte, schema []byte, err error) {
 	return
 }
 
-func signMessage(key crypto.PrivateKey, data []byte) ([]byte, error) {
-	signer, ok := key.(crypto.Signer)
-	if !ok {
-		return nil, errors.New("private key is not a signer")
-	}
-	hash := sha256.New()
-	_, err := hash.Write(data)
-	if err != nil {
-		return nil, err
-	}
-	hashed := hash.Sum([]byte{})
-	return signer.Sign(rand.Reader, hashed, crypto.SHA256)
-}
-
 func validateLicence(licence Licence) error {
 	if licence.Name == "" {
 		return errors.New("licence.name cannot be empty")
@@ -175,10 +160,22 @@ func SignLicence(key crypto.PrivateKey, licence Licence) (SignedLicence, error) 
 	if err != nil {
 		return SignedLicence{}, err
 	}
-	signature, err := signMessage(key, licenceData)
+	signature, err := sign.SignMessage(key, licenceData)
 	if err != nil {
 		return SignedLicence{}, err
 	}
 	encodedSignature := base64.StdEncoding.EncodeToString(signature)
 	return SignedLicence{Licence: licence, Signature: encodedSignature}, nil
+}
+
+func VerifyLicenceSignature(l SignedLicence, key crypto.PublicKey) error {
+	licenceData, err := json.Marshal(l.Licence)
+	if err != nil {
+		return err
+	}
+	decodedSignature, err := base64.StdEncoding.DecodeString(l.Signature)
+	if err != nil {
+		return err
+	}
+	return sign.VerifySignature(decodedSignature, licenceData, key)
 }

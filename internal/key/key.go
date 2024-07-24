@@ -2,7 +2,6 @@ package key
 
 import (
 	"crypto"
-	"crypto/ecdh"
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/elliptic"
@@ -19,8 +18,7 @@ type KeyType int
 const (
 	RSA KeyType = iota
 	ED25519
-	ECDSA
-	ECDH
+	ECDSAP384
 )
 
 const (
@@ -29,17 +27,15 @@ const (
 )
 
 var KeyTypes = map[KeyType][]string{
-	RSA:     {"rsa"},
-	ED25519: {"ed25519"},
-	ECDSA:   {"ecdsa"},
-	ECDH:    {"ecdh"},
+	RSA:       {"rsa"},
+	ED25519:   {"ed25519"},
+	ECDSAP384: {"ecdsa-p384"},
 }
 
 var KeyTypeDescription = map[KeyType]string{
-	RSA:     "implements RSA encryption as specified in PKCS #1 and RFC 8017.",
-	ED25519: "implements the Ed25519 signature algorithm.",
-	ECDSA:   "implements the Elliptic Curve Digital Signature Algorithm, as defined in FIPS 186-4 and SEC 1, Version 2.0.",
-	ECDH:    "ecdh implements Elliptic Curve Diffie-Hellman over NIST curves and Curve25519.",
+	RSA:       "implements RSA encryption as specified in PKCS #1 and RFC 8017.",
+	ED25519:   "implements the Ed25519 signature algorithm.",
+	ECDSAP384: "implements the Elliptic Curve Digital Signature Algorithm, as defined in FIPS 186-4 and SEC 1, Version 2.0.",
 }
 
 func generateRSAKey(bitsize uint) (crypto.PrivateKey, crypto.PublicKey, error) {
@@ -59,14 +55,6 @@ func generateEDKey() (crypto.PrivateKey, crypto.PublicKey, error) {
 
 func generateECDSAKey() (crypto.PrivateKey, crypto.PublicKey, error) {
 	key, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
-	if err != nil {
-		return nil, nil, err
-	}
-	return key, key.Public(), nil
-}
-
-func generateECDHKey() (crypto.PrivateKey, crypto.PublicKey, error) {
-	key, err := ecdh.P384().GenerateKey(rand.Reader)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -141,10 +129,10 @@ func GenerateKeyPair(typ KeyType, bitSize uint) (crypto.PrivateKey, crypto.Publi
 		privateKey, publicKey, err = generateRSAKey(bitSize)
 	case ED25519:
 		privateKey, publicKey, err = generateEDKey()
-	case ECDSA:
+	case ECDSAP384:
 		privateKey, publicKey, err = generateECDSAKey()
-	case ECDH:
-		privateKey, publicKey, err = generateECDHKey()
+	default:
+		err = errors.New("invalid algorithm")
 	}
 	return privateKey, publicKey, err
 }

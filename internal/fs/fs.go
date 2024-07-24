@@ -75,7 +75,7 @@ func ReadFile(path string) ([]byte, error) {
 	return os.ReadFile(path)
 }
 
-func getFilesNotEndWith(path, startsWith string, notEndsWith []string) []string {
+func getFilesFilter(path, startsWith string, endsWith []string) []string {
 	files, err := os.ReadDir(path)
 	if err != nil {
 		return []string{}
@@ -86,10 +86,10 @@ func getFilesNotEndWith(path, startsWith string, notEndsWith []string) []string 
 	for _, file := range files {
 		fullPath := filepath.Join(path, file.Name())
 		if file.IsDir() {
-			entries = append(notEndsWith, getFilesNotEndWith(fullPath, startsWith, notEndsWith)...)
+			entries = append(endsWith, getFilesFilter(fullPath, startsWith, endsWith)...)
 			continue
 		}
-		if len(notEndsWith) != 0 && slice.AnyMatch(notEndsWith,
+		if len(endsWith) != 0 && !slice.AnyMatch(endsWith,
 			func(s string) bool {
 				return strings.HasSuffix(file.Name(), s) || !strings.HasPrefix(file.Name(), startsWith)
 			}) {
@@ -100,7 +100,7 @@ func getFilesNotEndWith(path, startsWith string, notEndsWith []string) []string 
 	return entries
 }
 
-func ListDirStartsWithNotEndsWith(path, startsWith string, notEndsWith []string) ([]string, error) {
+func ListDirFilter(path, startsWith string, endsWith []string) ([]string, error) {
 	exists, typ, err := Exists(path)
 	if err != nil {
 		return nil, err
@@ -112,5 +112,5 @@ func ListDirStartsWithNotEndsWith(path, startsWith string, notEndsWith []string)
 		return nil, fmt.Errorf("path '%s' is not a directory", path)
 	}
 
-	return getFilesNotEndWith(path, startsWith, notEndsWith), nil
+	return getFilesFilter(path, startsWith, endsWith), nil
 }

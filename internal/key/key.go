@@ -9,7 +9,9 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/pem"
 	"errors"
+	"fmt"
 )
 
 type KeyType int
@@ -19,6 +21,11 @@ const (
 	ED25519
 	ECDSA
 	ECDH
+)
+
+const (
+	PRIVATE_BLOCK string = "PRIVATE KEY"
+	PUBLIC_BLOCK  string = "PUBLIC KEY"
 )
 
 var KeyTypes = map[KeyType][]string{
@@ -72,15 +79,57 @@ func MarshalKeyPair(private crypto.PrivateKey, public crypto.PublicKey) (private
 		return nil, nil, err
 	}
 	publicBytes, err = x509.MarshalPKIXPublicKey(public)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	privateBlock := pem.Block{
+		Type:    PRIVATE_BLOCK,
+		Bytes:   privateBytes,
+		Headers: nil,
+	}
+	privateBytes = pem.EncodeToMemory(&privateBlock)
+
+	publicBlock := pem.Block{
+		Type:    PUBLIC_BLOCK,
+		Bytes:   publicBytes,
+		Headers: nil,
+	}
+
+	publicBytes = pem.EncodeToMemory(&publicBlock)
+
 	return
 }
 
+func findBlock(data []byte, typ string) (*pem.Block, error) {
+	var block *pem.Block
+	for {
+		block, data = pem.Decode(data)
+		if block == nil {
+			return nil, fmt.Errorf("block '%s' not found", typ)
+		}
+		if block.Type == typ {
+			return block, nil
+		}
+	}
+}
+
 func ParsePrivateKey(keyBytes []byte) (crypto.PrivateKey, error) {
-	return x509.ParsePKCS8PrivateKey(keyBytes)
+	block, err := findBlock(keyBytes, PRIVATE_BLOCK)
+	if err != nil {
+		return nil, err
+	}
+
+	return x509.ParsePKCS8PrivateKey(block.Bytes)
 }
 
 func ParsePublicKey(keyBytes []byte) (crypto.PublicKey, error) {
-	return x509.ParsePKIXPublicKey(keyBytes)
+	block, err := findBlock(keyBytes, PUBLIC_BLOCK)
+	if err != nil {
+		return nil, err
+	}
+
+	return x509.ParsePKIXPublicKey(block.Bytes)
 }
 
 func GenerateKeyPair(typ KeyType, bitSize uint) (crypto.PrivateKey, crypto.PublicKey, error) {
